@@ -27,7 +27,7 @@ function Test-IsAdmin() {
 }
 
 function Install-SshServer() {
-    $SshServerPackageName = OpenSSH.Server~~~~0.0.1.0
+    $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
     Add-WindowsCapability -Online -Name $SshServerPackageName
 }
 
