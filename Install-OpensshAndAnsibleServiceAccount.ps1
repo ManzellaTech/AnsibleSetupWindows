@@ -89,8 +89,9 @@ function Add-LocalUserAccountForAnsible() {
         [Parameter(Mandatory = $true)]
         [SecureString]$PasswordSecureString
     )
+    $Username = "ansible"
     $NewUserParams = @{
-        Name = "ansible"
+        Name = $Username
         Password = $PasswordSecureString
         FullName = "Ansible"
         Description = "Ansible Service Account"
@@ -163,7 +164,7 @@ Enable-SshServerService
 Set-FirewallAllowSshInbound
 Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
 if ($null -eq $PasswordSecureString) {
-    $ClearTextPassword = New-RandomPassword -Length 16
+    $ClearTextPassword = New-RandomPassword
     $PasswordSecureString = ConvertTo-SecureString -String $ClearTextPassword -AsPlainText -Force
     # If a PasswordSecureString was not provided as a parameter the clear text password of the Ansible local Windows user account will be returned.
     # The password can then be stored (securely) with Ansible for "become" privilege escalation.
