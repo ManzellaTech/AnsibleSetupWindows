@@ -28,7 +28,11 @@ function Test-IsAdmin() {
 
 function Install-SshServer() {
     $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
-    Add-WindowsCapability -Online -Name $SshServerPackageName
+    try {
+        $result = Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop 2>$null
+    } catch {
+        Write-Error "Failed to add Windows capability: $_"
+    }
 }
 
 function Enable-SshServerService() {
