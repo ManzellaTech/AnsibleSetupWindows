@@ -27,26 +27,34 @@ function Test-IsAdmin() {
 }
 
 function Install-SshServer() {
+    Write-Host "Installing SSH Server..."
     $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
     try {
-        $result = Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop 2>$null
+        Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop 2>$null
     } catch {
         Write-Error "Failed to add Windows capability: $_"
+        Exit
     }
 }
 
 function Enable-SshServerService() {
-    # Start the sshd service
+    Write-Host "Starting SSH Server Service..."
     $SshServerServiceName = 'sshd'
     Start-Service $SshServerServiceName
     Set-Service -Name $SshServerServiceName -StartupType 'Automatic'
 }
 
 function Set-FirewallAllowSshInbound() {
-    $RuleName = "Allow SSH Inbound - TCP 22"
+    $PortNumber = 22
+    $RuleName = "Allow SSH Inbound - TCP $($PortNumber)"
     if (!(Get-NetFirewallRule -Name $RuleName -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
         Write-Host "Firewall Rule '$($RuleName)' does not exist, creating it..."
-        New-NetFirewallRule -Name $RuleName -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+        try {
+            New-NetFirewallRule -Name $RuleName -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $PortNumber  -ErrorAction Stop 2>$null
+        } catch {
+            Write-Error "Failed to add firewall rule to allow inbound SSH connections on TCP port $($PortNumber): $_"
+            Exit
+        }
     } else {
         Write-Host "Firewall rule '$($RuleName)' already exists."
     }
@@ -88,8 +96,40 @@ function New-RandomPassword {
     return $password
 }
 
+function Test-LocalUserExists {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Username
+    )
+    
+    try {
+        $user = Get-LocalUser -Name $Username -ErrorAction Stop
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Test-UserInLocalGroup {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Username,
+        [Parameter(Mandatory = $true)]
+        [string]$Group
+    )
+    
+    try {
+        $group = Get-LocalGroupMember -Group $Group -ErrorAction Stop
+        return ($group.Name -contains $Username)
+    } catch {
+        return $false
+    }
+}
+
 function Add-LocalUserAccountForAnsible() {
     param (
+        [Parameter(Mandatory = $true)]
+        [string]$Username,
         [Parameter(Mandatory = $true)]
         [SecureString]$PasswordSecureString
     )
@@ -102,16 +142,63 @@ function Add-LocalUserAccountForAnsible() {
         AccountNeverExpires = $true
         PasswordNeverExpires = $true
     }
-    New-LocalUser @NewUserParams
-    Add-LocalGroupMember -Group "Administrators" -Member $Username
-    Remove-LocalGroupMember -Group "Users" -Member $Username
+
+    try {
+        New-LocalUser @NewUserParams -ErrorAction Stop 2>$null
+    } catch {
+        Write-Error "Failed to add local user: $_"
+        Exit
+    }
+}
+
+function Add-LocalUserToAdministrators() {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Username
+    )
+    $Group = "Administrators"
+
+    if (Test-UserInLocalGroup -Username $Username -Group $Group) {
+        Write-Host "User: $($Username) is already a member of the $($Group) group."
+        return
+    }
+
+    try {
+        Write-Host "Adding user: $($Username) to the $($Group) group."
+        Add-LocalGroupMember -Group "Administrators" -Member $Username -ErrorAction Stop 2>$null
+    } catch {
+        Write-Error "Failed to add user to group: $_"
+        Exit
+    }
+}
+
+function Remove-LocalUserFromUsersGroup() {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Username
+    )
+    $Group = "Users"
+
+    if (-not(Test-UserInLocalGroup -Username $Username -Group $Group)) {
+        Write-Host "User: $($Username) is not a member of the $($Group) group."
+        return
+    }
+
+    try {
+        Write-Host "Removing user: $($Username) from the $($Group) group."
+        Remove-LocalGroupMember -Group "Users" -Member $Username -ErrorAction Stop 2>$null
+    }
+    catch {
+        Write-Error "Failed to remove user from group: $_"
+        Exit
+    }
 }
 
 function Set-SshdConfig() {
     $sshdConfigPath = "C:\ProgramData\ssh\sshd_config"
     if (!(Test-Path $sshdConfigPath)) {
         Write-Error "Error: sshd_config file not found at '$($sshdConfigPath)' foo."
-        return
+        Exit
     }
     Copy-Item -Path $sshdConfigPath -Destination "$($sshdConfigPath).original.bak"
     $sshdConfig = Get-Content $sshdConfigPath
@@ -129,7 +216,6 @@ function Set-SshdConfig() {
         $sshdConfig = $sshdConfig | Where-Object { $_ -notmatch $removeLine }
     }
 
-    # Add the new lines to the configuration
     $newLines = @(
         'PubkeyAuthentication yes',
         'ChallengeResponseAuthentication no',
@@ -139,12 +225,8 @@ function Set-SshdConfig() {
         'MaxSessions 10'
     )
 
-    # Combine the original content with the new lines
     $sshdConfig += $newLines
-
-    # Write the updated content back to the file
     $sshdConfig | Set-Content $sshdConfigPath
-
     Write-Host "sshd_config file updated successfully."
 }
 
@@ -156,9 +238,16 @@ function Set-SshDefaultShellToPowerShell() {
         PropertyType = 'String'
         Force        = $true
     }
-    New-ItemProperty @shellParams
+    try {
+        Write-Host "Setting default shell to PowerShell in Registry."
+        New-ItemProperty @shellParams -ErrorAction Stop 2>$null
+    } catch {
+        Write-Error "Failed to set default shell to PowerShell in Registry: $_"
+        Exit
+    }
 }
 
+$Username = "ansible"
 if (-not(Test-IsAdmin)) {
     Write-Error "This script must be run with administrator privileges.  Exiting..."
     Exit
@@ -167,13 +256,18 @@ Install-SshServer
 Enable-SshServerService
 Set-FirewallAllowSshInbound
 Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
-if ($null -eq $PasswordSecureString) {
-    $ClearTextPassword = New-RandomPassword
-    $PasswordSecureString = ConvertTo-SecureString -String $ClearTextPassword -AsPlainText -Force
-    # If a PasswordSecureString was not provided as a parameter the clear text password of the Ansible local Windows user account will be returned.
-    # The password can then be stored (securely) with Ansible for "become" privilege escalation.
-    Write-Output $ClearTextPassword
+if (-not(Test-LocalUserExists -Username $Username)) {
+    if ($null -eq $PasswordSecureString) {
+        $ClearTextPassword = New-RandomPassword
+        $PasswordSecureString = ConvertTo-SecureString -String $ClearTextPassword -AsPlainText -Force
+        Write-Output $ClearTextPassword
+    }
+    Add-LocalUserAccountForAnsible -Username $Username -PasswordSecureString $PasswordSecureString 
 }
-Add-LocalUserAccountForAnsible $PasswordSecureString 
+else {
+    Write-Host "Local User: $($Username) already exists."
+}
+Add-LocalUserToAdministrators -Username $Username
+Remove-LocalUserFromUsersGroup -Username $Username
 Set-SshdConfig
 Set-SshDefaultShellToPowerShell
