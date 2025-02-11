@@ -247,11 +247,11 @@ for ($i=1; $i -le 10; $i++) {
 }
 
 if (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey)) {
-    Write-Host "Adding Ansible Server public key to the '$($AuthorizedKeysPath)' file."
+    Write-Host "Adding Ansible Server public key to the 'administrators_authorized_keys' file."
     Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
 }
 else {
-    Write-Host "Ansible Server public key already exists in the '$($AuthorizedKeysPath)' file."
+    Write-Host "Ansible Server public key already exists in the 'administrators_authorized_keys' file."
 }
 
 Write-Host "Configuring SSH config for public key authentication and deny password authentication."
@@ -262,8 +262,8 @@ Set-SshDefaultShellToPowerShell
 # SIG # Begin signature block
 # MIIb0QYJKoZIhvcNAQcCoIIbwjCCG74CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCocNyyE1vXLW4W
-# 942pbD7sLcpmYDc+IgJQppXCwMk5r6CCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDzOXGzGKpoTOQ7
+# gNtv0zuTMkiq8dnsaJbdIqYEG+mAIqCCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
 # rkCv+bWIR3brMA0GCSqGSIb3DQEBCwUAMCIxIDAeBgNVBAMMF1Bvd2VyU2hlbGwg
 # Q29kZSBTaWduaW5nMB4XDTI1MDIxMDE0MzMwNVoXDTI2MDIxMDE0NTMwNVowIjEg
 # MB4GA1UEAwwXUG93ZXJTaGVsbCBDb2RlIFNpZ25pbmcwggEiMA0GCSqGSIb3DQEB
@@ -385,28 +385,28 @@ Set-SshDefaultShellToPowerShell
 # b3dlclNoZWxsIENvZGUgU2lnbmluZwIQQPUrvKE0H65Ar/m1iEd26zANBglghkgB
 # ZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJ
 # AzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8G
-# CSqGSIb3DQEJBDEiBCDDH36osRtbISkMVcQD2Z6KD1CSTBNJLaqcecMZXF9JvTAN
-# BgkqhkiG9w0BAQEFAASCAQAewzlXGaqi5itOKBAiP5WDlhGuIIwG0Wy5LHzuFxLa
-# a4Dl/s8TD9N9k3uZ2WGqFTKNO+GjVsOXXEhWkk+niSKC9jnOXvlePGhcTcVSIlqG
-# iG/u5rSeCDjSrn7ZiohvdqZ+dPlYHeoZfcs+AnrAAU1jJcJGMD3H+vFWvwipMe6r
-# RvphAoZLQt3om3CDB+dT9OeOJI5Whg2O6+ulT0nUgCxBF+iSOz2Bkqtbo4FspdiM
-# FTVDaNb7GG+i+Py1pFqWs6HhxIqHu1T90B3qmLklCJFS2anY+rKjicEAD968NJ/D
-# Xdiakh6AbWrqQzPfUkds9iAMiY6KaFFEzX1gOY9Mb0FtoYIDIDCCAxwGCSqGSIb3
+# CSqGSIb3DQEJBDEiBCAjlZeJ5xwK5LWeaLhMuWOKwhttkMtQJv7iPzGooeGyezAN
+# BgkqhkiG9w0BAQEFAASCAQCIez8OtUXsu+7sbQLznDZ9mfeLGiPF3ehnr4t5OXvB
+# E1HDeS3geirrjS+ozEgvwqunxt6F655Cx4NI0jckioxXOaszXwZS0zO5x8ErvLii
+# fyb6xylz9TgSFN5KgYTV5/eA6Iqo8GOEuaJ6LywuF+YYp56rqjC3zQWz4gNp16cC
+# xYPbPAMrWzPJfATG+fbuUSTBZ8WjTV3Ej4GMzKjoRcY53U0I0FB1wZKPvk4MUIqE
+# jin2Zz+TCep3B2Pg0Q3lbf+KBIt52EZJQeyC5NWoBHzxBAIbRPupmEiOcdMQVZv0
+# gkUXPvaYXnHhDd/JqtHv0GuQ1Qp1YFJnTP77nUAdaHw8oYIDIDCCAxwGCSqGSIb3
 # DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDkRpZ2lD
 # ZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBUcnVzdGVkIEc0IFJTQTQwOTYg
 # U0hBMjU2IFRpbWVTdGFtcGluZyBDQQIQC65mvFq6f5WHxvnpBOMzBDANBglghkgB
 # ZQMEAgEFAKBpMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkF
-# MQ8XDTI1MDIxMTE0NDUwNlowLwYJKoZIhvcNAQkEMSIEIPTtAUr1dOFT3w/v7Cns
-# wiSn64N+lLAyWNLDTieymcDLMA0GCSqGSIb3DQEBAQUABIICAI0lX+twjUmhG53H
-# UQFeIWmG6ifH5iNcBwADwH9040SXnPAS1PhqWoxSMu5qqH33ke0tMWjmLvzlJIDG
-# ulxNSrwxJ4cUijZcqc5INQ/scUJaR1OJ6R1UGt+Mje0eIW2IrAl3qpH2JAM0Ahq1
-# +LRuFLOKZPg3GFmGXvaMV54EQo8s6WOJkSlasKMhfFTa6CGNKtqRXNRPy17UjpdM
-# aNIt2NU2TCoHrJ7Vdz1ALVYcj2+NFPP+C/j79of77fWrqVijFWXNQ0fXmOV2eDsC
-# 4kPQE4N8o8vQemqErnd686051hnRZpxRwGs685sPJobHpiUqjkn49QBEyhPNdv8L
-# lmAmlBoksJNF/KUKzLYtBywHboaMTxxeT6ImD32c8iUXHKesCB3tY8BM9v9GjXxd
-# 7x2c9JgFeHWv67u6iAIaBiXgkI4XwTotCWGOxNTwxw+FeSlnbi3ly6qx0UJkWAXr
-# WYarP3rnDzqxH0xqpkK1GZCCCqVCPgfivHGRdY/k08QzOGV2VRjHrnt6XS2yAG7k
-# EY4LvcaEv/saso6YEvMwkD4wtQ6imiWw0LIe7a0/xW1t16Sm40GA4G+yCg8VcSL+
-# q1poLNyETfGnvG5JEITyCBdG1e0gAnxJ18KnrH0ryJJWTA0kvEPrQpn39ZnIv6MT
-# GVK23dcv1qgaRwgwnuzEKhAEWwCO
+# MQ8XDTI1MDIxMTE0NTkwNVowLwYJKoZIhvcNAQkEMSIEIJ3iXmGG2FoXQEHs4BmT
+# 1r0d/CZN4pbazMN7DvY5PMrVMA0GCSqGSIb3DQEBAQUABIICAFTuWVUQ4f11fUn1
+# DeKoh0P3/4HDexW71nymrVBnVw0QJj7kXCcYDfjHHpO/E4DfpbIH7ICCphlXW+LI
+# TyN25jzvCla6WuKNDWUu6Vxe7tkT2BNkrn1JUiSIXkMT2TH4dHce6nEpc+/OPJbx
+# OyGkED06JC3U8OOBLTFY/+Aca6mi1kaWdKzyieE+YQ3/EK2ewDNmYZEJQcVAKfHO
+# c0H5RtTcuMvs24ehPsPA8m8qWOtN9dp3oEYZOPr+8VLoYk/eoOeu41Sqk53w/lYD
+# 9c8vcLJ3FN+NVV7LfRhcpmM6ewkjYsHwm483GGmnUe6/T4ZFd+72R/7a94t1/7EK
+# 6OmAZ5WghYUVZEbYv0kpFWPJ3+aSedyfHsL+F9ldXEz9RvvTZJtng1zO0z/sxjXZ
+# YlCmlPitV+FhiHHU9PE1nws9uz1m7lZ52CKuKfVqJ1FdiCCdoE/jSQElyVgCmDpw
+# Ewyf5uFK5h7B9/QO6sWxHOlF9ALyiodHMaeCYR5MNqT9I7TuuRLirPdOfPeoGHCn
+# UO9QgUCc1bn5gL4/GtWIJqgbGkRMOhskzF8F5TTGXfcXyV4u8gZ6h1+eim4tAFRe
+# xNoWAA5sI+foSHNfobfzrziIl8+cmfQsDsS5zkBxeDnuR0iv1Jp8haSQoYLbod7V
+# IwNKe23ezyLZEfgLVyUwguqd6gXH
 # SIG # End signature block
