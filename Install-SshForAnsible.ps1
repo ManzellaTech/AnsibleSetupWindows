@@ -27,11 +27,23 @@ function Test-RunningScriptAsAdmin() {
     return (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Test-SshServerInstalled() {
+    $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
+    $Software = Get-WindowsCapability -Online | Where-Object { $_.Name -eq $SshServerPackageName }
+    if ($Software -and $Software.State -eq 'Installed') {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
 function Install-SshServer() {
     $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
     try {
         Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop | Out-Null
-    } catch {
+    }
+    catch {
         Write-Error "Failed to add Windows capability: $_"
         Exit
     }
@@ -41,10 +53,6 @@ function Enable-SshServerService() {
     $SshServerServiceName = 'sshd'
     Start-Service $SshServerServiceName
     Set-Service -Name $SshServerServiceName -StartupType 'Automatic'
-}
-function Restart-SshServerService() {
-    $SshServerServiceName = 'sshd'
-    Restart-Service $SshServerServiceName
 }
 
 function Test-FirewallRuleExists() {
@@ -212,10 +220,15 @@ if (-not(Test-RunningScriptAsAdmin)) {
     Exit
 }
 
-Write-Host "Installing SSH Server..."
-Install-SshServer
+if (-not(Test-SshServerInstalled)) {
+    Write-Host "Installing SSH Server..."
+    Install-SshServer
+}
+else {
+    Write-Host "SSH Server is already installed."
+}
 
-Write-Host "Starting SSH Server Service..."
+Write-Host "Starting SSH Server Service and setting startup type to 'Automatic'..."
 Enable-SshServerService
 
 $RuleName = Get-FirewallRuleNameFromSshPort -SshPortNumber $SshPortNumber
@@ -262,8 +275,8 @@ Set-SshDefaultShellToPowerShell
 # SIG # Begin signature block
 # MIIb0QYJKoZIhvcNAQcCoIIbwjCCG74CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDzOXGzGKpoTOQ7
-# gNtv0zuTMkiq8dnsaJbdIqYEG+mAIqCCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDgzcXf/69b5a23
+# XtWkvc3TPyMAMfYAxyNqcTmTwLeTg6CCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
 # rkCv+bWIR3brMA0GCSqGSIb3DQEBCwUAMCIxIDAeBgNVBAMMF1Bvd2VyU2hlbGwg
 # Q29kZSBTaWduaW5nMB4XDTI1MDIxMDE0MzMwNVoXDTI2MDIxMDE0NTMwNVowIjEg
 # MB4GA1UEAwwXUG93ZXJTaGVsbCBDb2RlIFNpZ25pbmcwggEiMA0GCSqGSIb3DQEB
@@ -385,28 +398,28 @@ Set-SshDefaultShellToPowerShell
 # b3dlclNoZWxsIENvZGUgU2lnbmluZwIQQPUrvKE0H65Ar/m1iEd26zANBglghkgB
 # ZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJ
 # AzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8G
-# CSqGSIb3DQEJBDEiBCAjlZeJ5xwK5LWeaLhMuWOKwhttkMtQJv7iPzGooeGyezAN
-# BgkqhkiG9w0BAQEFAASCAQCIez8OtUXsu+7sbQLznDZ9mfeLGiPF3ehnr4t5OXvB
-# E1HDeS3geirrjS+ozEgvwqunxt6F655Cx4NI0jckioxXOaszXwZS0zO5x8ErvLii
-# fyb6xylz9TgSFN5KgYTV5/eA6Iqo8GOEuaJ6LywuF+YYp56rqjC3zQWz4gNp16cC
-# xYPbPAMrWzPJfATG+fbuUSTBZ8WjTV3Ej4GMzKjoRcY53U0I0FB1wZKPvk4MUIqE
-# jin2Zz+TCep3B2Pg0Q3lbf+KBIt52EZJQeyC5NWoBHzxBAIbRPupmEiOcdMQVZv0
-# gkUXPvaYXnHhDd/JqtHv0GuQ1Qp1YFJnTP77nUAdaHw8oYIDIDCCAxwGCSqGSIb3
+# CSqGSIb3DQEJBDEiBCBBVpIzeIHau8qSaStuNquo0PCpAwybZXI60zHZsgOPSzAN
+# BgkqhkiG9w0BAQEFAASCAQBRE0Rcpt+KHfAmg/ObjRGPc2AWKzRQw5ANs1DJRTRy
+# DnlENMxAAwrYXg6S+NWHb4YBXfQ8qZoiUatEsAyscAcMY8wraOUQcxv9AAKut4Oy
+# a+Umd/dk0jpzaFRCpZGSAZXbb9JXSelkc9oBDO+dMI7tb+j+Zlo2n352ZTbmkTDR
+# uM/CK4cd2AZ1igHJZX0i0LOrbOlYFDcEELcDDfX4rPaRAhQl5kBQNamv6xlYq2Fg
+# /CrQoD+e5WVYISkLcrGqN1Rameh59T5M95D1+6gBK2RQSZDK3Tus6AdVQjWorC3j
+# uIkstn8DGkWcp+GVNhW+qVzvGKWdQA8USyc8pYYSDNEvoYIDIDCCAxwGCSqGSIb3
 # DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDkRpZ2lD
 # ZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBUcnVzdGVkIEc0IFJTQTQwOTYg
 # U0hBMjU2IFRpbWVTdGFtcGluZyBDQQIQC65mvFq6f5WHxvnpBOMzBDANBglghkgB
 # ZQMEAgEFAKBpMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkF
-# MQ8XDTI1MDIxMTE0NTkwNVowLwYJKoZIhvcNAQkEMSIEIJ3iXmGG2FoXQEHs4BmT
-# 1r0d/CZN4pbazMN7DvY5PMrVMA0GCSqGSIb3DQEBAQUABIICAFTuWVUQ4f11fUn1
-# DeKoh0P3/4HDexW71nymrVBnVw0QJj7kXCcYDfjHHpO/E4DfpbIH7ICCphlXW+LI
-# TyN25jzvCla6WuKNDWUu6Vxe7tkT2BNkrn1JUiSIXkMT2TH4dHce6nEpc+/OPJbx
-# OyGkED06JC3U8OOBLTFY/+Aca6mi1kaWdKzyieE+YQ3/EK2ewDNmYZEJQcVAKfHO
-# c0H5RtTcuMvs24ehPsPA8m8qWOtN9dp3oEYZOPr+8VLoYk/eoOeu41Sqk53w/lYD
-# 9c8vcLJ3FN+NVV7LfRhcpmM6ewkjYsHwm483GGmnUe6/T4ZFd+72R/7a94t1/7EK
-# 6OmAZ5WghYUVZEbYv0kpFWPJ3+aSedyfHsL+F9ldXEz9RvvTZJtng1zO0z/sxjXZ
-# YlCmlPitV+FhiHHU9PE1nws9uz1m7lZ52CKuKfVqJ1FdiCCdoE/jSQElyVgCmDpw
-# Ewyf5uFK5h7B9/QO6sWxHOlF9ALyiodHMaeCYR5MNqT9I7TuuRLirPdOfPeoGHCn
-# UO9QgUCc1bn5gL4/GtWIJqgbGkRMOhskzF8F5TTGXfcXyV4u8gZ6h1+eim4tAFRe
-# xNoWAA5sI+foSHNfobfzrziIl8+cmfQsDsS5zkBxeDnuR0iv1Jp8haSQoYLbod7V
-# IwNKe23ezyLZEfgLVyUwguqd6gXH
+# MQ8XDTI1MDIxMTE3MjY1OFowLwYJKoZIhvcNAQkEMSIEIJMwsZ9cgqgxorO7Zkyp
+# c/sAaGLNGpOwWtFmkSBrXYqtMA0GCSqGSIb3DQEBAQUABIICADJwamPtoxppM7k6
+# Dk5j5S8rqYPaZrZwQYyTDEpqUcUDLnU8gvxw45yD59nDrvOhBYqQmBz3EfAEUGjF
+# DSnPiwolCbwcDzFpfHOa/VGYZnjPDKkfBevBwrA1SZNCwj8iEDAK8TXrv9bjKade
+# +DnVF3NkCC6KpY7XTajFV7aQkEccr2X6/uzUrPg427facqk3WZQ5UABTPOgKOGPx
+# B6oxrChKhsENCLLcs9jU8Wi7w9MrA1WfW2UJud4pvAhWJXKYlnZYuF6wVBhpHjYO
+# zX8oQpTjORuXE5smvN75W+vOxFbxay33MwZJXU6R4T08lfe9lCHZ4YCwM15cAur7
+# FqUKwYO1WMG6l526WIecras5d9OcziXk9+ldCVAhGt5V9KMH5RL3zgIOpfBer3Ct
+# TrD1bNCsp0TfguPA5QhdJfcrOYbndBgDxLNvhn36OfBJYAPg6RRGfrkI9gQYlx0x
+# 6e7Tdd9Sp0JARSvb6Qo6HktYdXERsQFdbZewv7d+R5qmZpFh5Aiu5eC/TIzUHf+B
+# zRl5WyyhHQsmJGDPjxWZuuZQao8TMXZrgW0DZD6B7IxcM/TWPdGdrhVLfHXJcjNG
+# VktUDCn3j1KR5hnHdP/daekhvGvk8jCU8SdiI0Kh3eTR5nJh0vb+3XJvswbdWHrw
+# Y2pS4Z0LPcf4x03zNZEgoaJEnvno
 # SIG # End signature block
