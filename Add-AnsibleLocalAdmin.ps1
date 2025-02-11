@@ -56,8 +56,8 @@ function Test-UserInLocalGroup {
     
     $FullUsername = "$(Get-ComputerName)\$($Username)"
     try {
-        $group = Get-LocalGroupMember -Group $Group -ErrorAction Stop
-        return ($group.Name -contains $FullUsername)
+        $GroupMembers = Get-LocalGroupMember -Group $Group -ErrorAction Stop
+        return ($GroupMembers.Name -contains $FullUsername)
     }
     catch {
         Write-Error "Unable to check $($Group) group membership: $_"
@@ -179,23 +179,23 @@ if (-not(Test-LocalUserExists -Username $AnsibleServiceAccountUsername)) {
         $PasswordSecureString = ConvertTo-SecureString -String $ClearTextPassword -AsPlainText -Force
         Write-Output $ClearTextPassword
     }
-    Write-Host "Adding Ansible local user service account with username: $($AnsibleServiceAccountUsername)"
+    Write-Host "Adding Ansible local user service account '$($AnsibleServiceAccountUsername)'"
     Add-LocalUserAccountForAnsible -Username $AnsibleServiceAccountUsername -PasswordSecureString $PasswordSecureString 
 }
 else {
-    Write-Host "Local user: $($AnsibleServiceAccountUsername) already exists."
+    Write-Host "Local user: '$($AnsibleServiceAccountUsername)' already exists."
 }
 
 if (-not(Test-UserInLocalAdministrators -Username $AnsibleServiceAccountUsername)) {
-    Write-Host "Adding $($AnsibleServiceAccountUsername) to local Administrators group."
+    Write-Host "Adding '$($AnsibleServiceAccountUsername)' to local Administrators group."
     Add-LocalUserToAdministrators -Username $AnsibleServiceAccountUsername
 }
 else {
-    Write-Host "User: $($Username) is already a member of the local Administrators group."
+    Write-Host "User '$($AnsibleServiceAccountUsername)' is already a member of the local Administrators group."
 }
 
 if (Test-UserInLocalUsers -Username $AnsibleServiceAccountUsername) {
-    Write-Host "Removing $($AnsibleServiceAccountUsername) from local Users group."
+    Write-Host "Removing '$($AnsibleServiceAccountUsername)' from local Users group."
     Remove-LocalUserFromUsersGroup -Username $AnsibleServiceAccountUsername
 }
 # SIG # Begin signature block
