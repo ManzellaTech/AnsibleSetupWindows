@@ -30,7 +30,7 @@ function Test-RunningScriptAsAdmin() {
 function Install-SshServer() {
     $SshServerPackageName = "OpenSSH.Server~~~~0.0.1.0"
     try {
-        Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop 2>$null
+        Add-WindowsCapability -Online -Name $SshServerPackageName -ErrorAction Stop | Out-Null
     } catch {
         Write-Error "Failed to add Windows capability: $_"
         Exit
@@ -78,7 +78,7 @@ function Set-FirewallAllowTcpInbound() {
         [string]$RuleName
     )
     try {
-        New-NetFirewallRule -Name $RuleName -DisplayName $RuleName -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $PortNumber  -ErrorAction Stop 2>$null
+        New-NetFirewallRule -Name $RuleName -DisplayName $RuleName -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $PortNumber  -ErrorAction Stop | Out-Null
     } catch {
         Write-Error "Failed to add firewall rule to allow inbound connections on TCP port $($PortNumber): $_"
         Exit
@@ -136,6 +136,14 @@ function Write-PubKeyToAuthorizedKeysFile() {
     $AuthorizedKeysPath = "C:\ProgramData\ssh\administrators_authorized_keys"
     Add-Content -Path $AuthorizedKeysPath -Value $AnsibleServerPublicKey
 }
+function Test-AuthorizedKeysFileExists() {
+    $AuthorizedKeysPath = "C:\ProgramData\ssh\administrators_authorized_keys"
+    return [System.IO.File]::Exists($AuthorizedKeysPath)
+}
+function Test-SshdConfigFileExists() {
+    $SshdConfigPath = "C:\ProgramData\ssh\sshd_config"
+    return [System.IO.File]::Exists($SshdConfigPath)
+}
 
 function Set-SshdConfig() {
     param (
@@ -150,6 +158,7 @@ function Set-SshdConfig() {
     }
     Copy-Item -Path $SshdConfigPath -Destination "$($SshdConfigPath).bak"
     $SshdConfig = Get-Content $SshdConfigPath
+    Write-Host $SshdConfig.GetType()
 
     $LinesToRemove = @(
         '^PubkeyAuthentication',
@@ -166,6 +175,7 @@ function Set-SshdConfig() {
     }
     $SshdConfig = Remove-LinesFromText -Text $SshdConfig -LinesToRemove $LinesToRemove
 
+    Write-Host $SshdConfig.GetType()
     $LinesToAdd = @(
         'PubkeyAuthentication yes',
         'ChallengeResponseAuthentication no',
@@ -178,6 +188,7 @@ function Set-SshdConfig() {
         $LinesToAdd += "Port $($SshPortNumber)"
     }
     $SshdConfig = Add-LinesToText -Text $SshdConfig -LinesToAdd $LinesToAdd
+    Write-Host $SshdConfig.GetType()
     
     $SshdConfig | Set-Content $SshdConfigPath
     Write-Host "sshd_config file updated successfully."
@@ -219,6 +230,25 @@ else {
     Write-Host "Firewall rule '$($RuleName)' already exists."
 }
 
+for ($i=1; $i -le 10; $i++) {
+    if (-not(Test-AuthorizedKeysFileExists)) {
+        Write-Host "authorized keys has not yet been created. Sleeping..."
+        Start-Sleep -Seconds 1
+    }
+    else {
+        break
+    }
+}
+for ($i=1; $i -le 10; $i++) {
+    if (-not(Test-SshdConfigFileExists)) {
+        Write-Host "sshd_config file has not yet been created. Sleeping..."
+        Start-Sleep -Seconds 1
+    }
+    else {
+        break
+    }
+}
+
 if (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey)) {
     Write-Host "Adding Ansible Server public key to the '$($AuthorizedKeysPath)' file."
     Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
@@ -235,8 +265,8 @@ Set-SshDefaultShellToPowerShell
 # SIG # Begin signature block
 # MIIb0QYJKoZIhvcNAQcCoIIbwjCCG74CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCx7V5SdXEZOynu
-# nVsagxIStHP1HkwdRy4yqpTQNKxY+KCCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCocNyyE1vXLW4W
+# 942pbD7sLcpmYDc+IgJQppXCwMk5r6CCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
 # rkCv+bWIR3brMA0GCSqGSIb3DQEBCwUAMCIxIDAeBgNVBAMMF1Bvd2VyU2hlbGwg
 # Q29kZSBTaWduaW5nMB4XDTI1MDIxMDE0MzMwNVoXDTI2MDIxMDE0NTMwNVowIjEg
 # MB4GA1UEAwwXUG93ZXJTaGVsbCBDb2RlIFNpZ25pbmcwggEiMA0GCSqGSIb3DQEB
@@ -358,28 +388,28 @@ Set-SshDefaultShellToPowerShell
 # b3dlclNoZWxsIENvZGUgU2lnbmluZwIQQPUrvKE0H65Ar/m1iEd26zANBglghkgB
 # ZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJ
 # AzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8G
-# CSqGSIb3DQEJBDEiBCCy1FPKLIVjKCNel71VE5ZLC+oF3QWxVYDQntlXBdKoXDAN
-# BgkqhkiG9w0BAQEFAASCAQCDsXvtDPzLZDa/4ioQ09ijIXwu8YDe6W9uFfdG+nFZ
-# /CzDmij/CWpIwHLRD2TUzNDTpfizQebWrruLWGAc2n/B+CB3cObnmfdn9qIeAxaV
-# +844Pm46AUHIs+j+fUaOxWTB6AAjiQamsXPpKWrPpIHB8ao0NnxFmv7vzrfyDjn9
-# IP+2JdwfAu/pH0QDKHzrBe/k5JBxMcxFqpF7+dvGWfGPtOO2lUPP/88W8QydBpgD
-# iEMDQha5DlEXFMk63HKwj+TnNpmdDrII6XuTgKW5ble2u2GfPI/Hq+/eKfu+MJVp
-# BXCofs9FQ1iFu6KaPIFsM5Onrhmt8mTFTDJCUEab3xtioYIDIDCCAxwGCSqGSIb3
+# CSqGSIb3DQEJBDEiBCDDH36osRtbISkMVcQD2Z6KD1CSTBNJLaqcecMZXF9JvTAN
+# BgkqhkiG9w0BAQEFAASCAQAewzlXGaqi5itOKBAiP5WDlhGuIIwG0Wy5LHzuFxLa
+# a4Dl/s8TD9N9k3uZ2WGqFTKNO+GjVsOXXEhWkk+niSKC9jnOXvlePGhcTcVSIlqG
+# iG/u5rSeCDjSrn7ZiohvdqZ+dPlYHeoZfcs+AnrAAU1jJcJGMD3H+vFWvwipMe6r
+# RvphAoZLQt3om3CDB+dT9OeOJI5Whg2O6+ulT0nUgCxBF+iSOz2Bkqtbo4FspdiM
+# FTVDaNb7GG+i+Py1pFqWs6HhxIqHu1T90B3qmLklCJFS2anY+rKjicEAD968NJ/D
+# Xdiakh6AbWrqQzPfUkds9iAMiY6KaFFEzX1gOY9Mb0FtoYIDIDCCAxwGCSqGSIb3
 # DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDkRpZ2lD
 # ZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBUcnVzdGVkIEc0IFJTQTQwOTYg
 # U0hBMjU2IFRpbWVTdGFtcGluZyBDQQIQC65mvFq6f5WHxvnpBOMzBDANBglghkgB
 # ZQMEAgEFAKBpMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkF
-# MQ8XDTI1MDIxMTE0MTIyMFowLwYJKoZIhvcNAQkEMSIEIM3MyWW56JjZZtYoCjFl
-# NLoNiTBBBw/uWuhmjk8q4a6vMA0GCSqGSIb3DQEBAQUABIICAJttHOXbaa778hGB
-# Vl4nJcbeKfu3quOyevFl+MSxeBQ0vZCxZlc72ePkjAA1CYrdfdsS8/aP7gSYViXJ
-# bMWyNBl9P8qutzYh7Rpeqn4WH2/jamRKAX2MJ34xswp3g7ac6mgeNZyicUA77VpL
-# me0jaQjHAT4JidhkRX1VdBKmaqJnzho57mVfHLcCD0dUjBBtqqWBL8BHm9SfZHK8
-# v8kkRHuFZOWNbbKwcY5zWcaTry09kv7WTu2T9XuzEHwUbd7qzIjC8BQvHGIfkSjM
-# ByyKXAIYVf22IUJ2W0N+UZOvUO+P8anc5BidU9bxb+Olwl9ULDtXLOSA3CcMAQMl
-# 9WRr9vXiomPXh+aX6QRaQhN2fXZF45v4by9OcCcZTes4hPWw1qc0EPUH9YKCgHbo
-# 6bF7A9mrobmOBEbUcwIHy1wDUSWke/EzH0Hh0oM+XPl6gZEuRD69TnpiYULoeg21
-# lBhM1Xl5oteiVgijKhVum084Cyh3k4A+IQjPusmPJhjBISA2YEA/VNSlXOVjMSeJ
-# w5GS/p/LzkyfC6FLIJulekCtvNjtpwC9DpwHE53kJnaOgQmWQtfNAGMXMhbjKa6Z
-# dqwXUAf9ndB4NZO5CSgh4WMGqqBFaqk/dKMRq6UzteD87KSBUKrDlDoeFNLzqmCG
-# 0SHyjyylz7MGeWBTiQssnWexFtJ0
+# MQ8XDTI1MDIxMTE0NDUwNlowLwYJKoZIhvcNAQkEMSIEIPTtAUr1dOFT3w/v7Cns
+# wiSn64N+lLAyWNLDTieymcDLMA0GCSqGSIb3DQEBAQUABIICAI0lX+twjUmhG53H
+# UQFeIWmG6ifH5iNcBwADwH9040SXnPAS1PhqWoxSMu5qqH33ke0tMWjmLvzlJIDG
+# ulxNSrwxJ4cUijZcqc5INQ/scUJaR1OJ6R1UGt+Mje0eIW2IrAl3qpH2JAM0Ahq1
+# +LRuFLOKZPg3GFmGXvaMV54EQo8s6WOJkSlasKMhfFTa6CGNKtqRXNRPy17UjpdM
+# aNIt2NU2TCoHrJ7Vdz1ALVYcj2+NFPP+C/j79of77fWrqVijFWXNQ0fXmOV2eDsC
+# 4kPQE4N8o8vQemqErnd686051hnRZpxRwGs685sPJobHpiUqjkn49QBEyhPNdv8L
+# lmAmlBoksJNF/KUKzLYtBywHboaMTxxeT6ImD32c8iUXHKesCB3tY8BM9v9GjXxd
+# 7x2c9JgFeHWv67u6iAIaBiXgkI4XwTotCWGOxNTwxw+FeSlnbi3ly6qx0UJkWAXr
+# WYarP3rnDzqxH0xqpkK1GZCCCqVCPgfivHGRdY/k08QzOGV2VRjHrnt6XS2yAG7k
+# EY4LvcaEv/saso6YEvMwkD4wtQ6imiWw0LIe7a0/xW1t16Sm40GA4G+yCg8VcSL+
+# q1poLNyETfGnvG5JEITyCBdG1e0gAnxJ18KnrH0ryJJWTA0kvEPrQpn39ZnIv6MT
+# GVK23dcv1qgaRwgwnuzEKhAEWwCO
 # SIG # End signature block
