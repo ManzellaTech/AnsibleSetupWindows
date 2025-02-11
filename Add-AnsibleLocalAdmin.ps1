@@ -128,7 +128,7 @@ function Add-LocalUserAccountForAnsible() {
     }
 
     try {
-        New-LocalUser @NewUserParams -ErrorAction Stop 2>$null
+        New-LocalUser @NewUserParams -ErrorAction Stop | Out-Null
     } catch {
         Write-Error "Failed to add local user: $_"
         Exit
@@ -141,9 +141,7 @@ function Add-LocalUserToAdministrators() {
         [string]$Username
     )
     $Group = "Administrators"
-
     try {
-        Write-Host "Adding user: $($Username) to the $($Group) group."
         Add-LocalGroupMember -Group $Group -Member $Username -ErrorAction Stop | Out-Null
     } catch {
         Write-Error "Failed to add user to $($Group) group: $_"
@@ -160,7 +158,7 @@ function Remove-LocalUserFromUsersGroup() {
 
     try {
         Write-Host "Removing user: $($Username) from the $($Group) group."
-        Remove-LocalGroupMember -Group "Users" -Member $Username -ErrorAction Stop 2>$null
+        Remove-LocalGroupMember -Group "Users" -Member $Username -ErrorAction Stop | Out-Null
     }
     catch {
         Write-Error "Failed to remove user from group: $_"

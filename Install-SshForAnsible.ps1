@@ -240,33 +240,16 @@ else {
     Write-Host "Firewall rule '$($RuleName)' already exists."
 }
 
-for ($i=1; $i -le 10; $i++) {
-    if (-not(Test-AuthorizedKeysFileExists)) {
-        Write-Host "'administrators_authorized_keys' file has not yet been created. Sleeping..."
-        Start-Sleep -Seconds 2
-    }
-    else {
-        if (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey)) {
-            Write-Host "Adding Ansible Server public key to the 'administrators_authorized_keys' file."
-            Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
-        }
-        else {
-            Write-Host "Ansible Server public key already exists in the 'administrators_authorized_keys' file."
-        }
-        break
-    }
+if ((-not(Test-AuthorizedKeysFileExists)) -or (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey))) {
+    Write-Host "Adding Ansible Server public key to the 'administrators_authorized_keys' file."
+    Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
 }
-for ($i=1; $i -le 10; $i++) {
-    if (-not(Test-SshdConfigFileExists)) {
-        Write-Host "sshd_config file has not yet been created. Sleeping..."
-        Start-Sleep -Seconds 2
-    }
-    else {
-        Write-Host "Configuring SSH config for public key authentication and deny password authentication."
-        Set-SshdConfig
-        break
-    }
+else {
+    Write-Host "Ansible Server public key already exists in the 'administrators_authorized_keys' file."
 }
+
+Write-Host "Configuring SSH config for public key authentication and deny password authentication."
+Set-SshdConfig
 
 Write-Host "Setting default shell to PowerShell in Registry."
 Set-SshDefaultShellToPowerShell
