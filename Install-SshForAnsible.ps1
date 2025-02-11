@@ -242,41 +242,39 @@ else {
 
 for ($i=1; $i -le 10; $i++) {
     if (-not(Test-AuthorizedKeysFileExists)) {
-        Write-Host "authorized keys has not yet been created. Sleeping..."
-        Start-Sleep -Seconds 1
+        Write-Host "'administrators_authorized_keys' file has not yet been created. Sleeping..."
+        Start-Sleep -Seconds 2
     }
     else {
+        if (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey)) {
+            Write-Host "Adding Ansible Server public key to the 'administrators_authorized_keys' file."
+            Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
+        }
+        else {
+            Write-Host "Ansible Server public key already exists in the 'administrators_authorized_keys' file."
+        }
         break
     }
 }
 for ($i=1; $i -le 10; $i++) {
     if (-not(Test-SshdConfigFileExists)) {
         Write-Host "sshd_config file has not yet been created. Sleeping..."
-        Start-Sleep -Seconds 1
+        Start-Sleep -Seconds 2
     }
     else {
+        Write-Host "Configuring SSH config for public key authentication and deny password authentication."
+        Set-SshdConfig
         break
     }
 }
-
-if (-not(Test-PubKeyInAuthorizedKeysFile -AnsibleServerPublicKey $AnsibleServerPublicKey)) {
-    Write-Host "Adding Ansible Server public key to the 'administrators_authorized_keys' file."
-    Write-PubKeyToAuthorizedKeysFile $AnsibleServerPublicKey
-}
-else {
-    Write-Host "Ansible Server public key already exists in the 'administrators_authorized_keys' file."
-}
-
-Write-Host "Configuring SSH config for public key authentication and deny password authentication."
-Set-SshdConfig
 
 Write-Host "Setting default shell to PowerShell in Registry."
 Set-SshDefaultShellToPowerShell
 # SIG # Begin signature block
 # MIIb0QYJKoZIhvcNAQcCoIIbwjCCG74CAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDgzcXf/69b5a23
-# XtWkvc3TPyMAMfYAxyNqcTmTwLeTg6CCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBTQIIFd7AgMbj2
+# 3Oy0c0d3XSus+E3S5WM21rw5hv6PxaCCFhswggMUMIIB/KADAgECAhBA9Su8oTQf
 # rkCv+bWIR3brMA0GCSqGSIb3DQEBCwUAMCIxIDAeBgNVBAMMF1Bvd2VyU2hlbGwg
 # Q29kZSBTaWduaW5nMB4XDTI1MDIxMDE0MzMwNVoXDTI2MDIxMDE0NTMwNVowIjEg
 # MB4GA1UEAwwXUG93ZXJTaGVsbCBDb2RlIFNpZ25pbmcwggEiMA0GCSqGSIb3DQEB
@@ -398,28 +396,28 @@ Set-SshDefaultShellToPowerShell
 # b3dlclNoZWxsIENvZGUgU2lnbmluZwIQQPUrvKE0H65Ar/m1iEd26zANBglghkgB
 # ZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJ
 # AzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMC8G
-# CSqGSIb3DQEJBDEiBCBBVpIzeIHau8qSaStuNquo0PCpAwybZXI60zHZsgOPSzAN
-# BgkqhkiG9w0BAQEFAASCAQBRE0Rcpt+KHfAmg/ObjRGPc2AWKzRQw5ANs1DJRTRy
-# DnlENMxAAwrYXg6S+NWHb4YBXfQ8qZoiUatEsAyscAcMY8wraOUQcxv9AAKut4Oy
-# a+Umd/dk0jpzaFRCpZGSAZXbb9JXSelkc9oBDO+dMI7tb+j+Zlo2n352ZTbmkTDR
-# uM/CK4cd2AZ1igHJZX0i0LOrbOlYFDcEELcDDfX4rPaRAhQl5kBQNamv6xlYq2Fg
-# /CrQoD+e5WVYISkLcrGqN1Rameh59T5M95D1+6gBK2RQSZDK3Tus6AdVQjWorC3j
-# uIkstn8DGkWcp+GVNhW+qVzvGKWdQA8USyc8pYYSDNEvoYIDIDCCAxwGCSqGSIb3
+# CSqGSIb3DQEJBDEiBCAjwFtgi0nDJQHx8oXPWgI6LOt1+q+TyHbSctj/33IvxzAN
+# BgkqhkiG9w0BAQEFAASCAQAoF9YuvjNOFa0gYzjxSYCQGAEZPj7sYp4jZ1QODihR
+# URiIRkU8Q542zeEruLJutQJc+LAePxbppByaWsLi18qzqKcL0D8IAym40ZLEs7Ez
+# bhNxOwyTd2rfNsq2FbyKDIGlR3+O8M6ZpDhWR4yS8p9tS04PA5gHDKEe73o1rKnJ
+# yAWUUOkAuu/iXyM8f+rpzklliqwXlSeQ1rRjY9ZFCmjc3ZwTVDuul8LvQeV2s0vI
+# Wg18oemHTlRMHJ9yvyf53j/RhbjhjeZTEGvtsc3ew+a56DG1bOpbDN0HEX+G7TAa
+# EwE/+EeDFWFzD9VldYceeX0RlYGwStx9Tk6nBDRvU1RjoYIDIDCCAxwGCSqGSIb3
 # DQEJBjGCAw0wggMJAgEBMHcwYzELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDkRpZ2lD
 # ZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBUcnVzdGVkIEc0IFJTQTQwOTYg
 # U0hBMjU2IFRpbWVTdGFtcGluZyBDQQIQC65mvFq6f5WHxvnpBOMzBDANBglghkgB
 # ZQMEAgEFAKBpMBgGCSqGSIb3DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkF
-# MQ8XDTI1MDIxMTE3MjY1OFowLwYJKoZIhvcNAQkEMSIEIJMwsZ9cgqgxorO7Zkyp
-# c/sAaGLNGpOwWtFmkSBrXYqtMA0GCSqGSIb3DQEBAQUABIICADJwamPtoxppM7k6
-# Dk5j5S8rqYPaZrZwQYyTDEpqUcUDLnU8gvxw45yD59nDrvOhBYqQmBz3EfAEUGjF
-# DSnPiwolCbwcDzFpfHOa/VGYZnjPDKkfBevBwrA1SZNCwj8iEDAK8TXrv9bjKade
-# +DnVF3NkCC6KpY7XTajFV7aQkEccr2X6/uzUrPg427facqk3WZQ5UABTPOgKOGPx
-# B6oxrChKhsENCLLcs9jU8Wi7w9MrA1WfW2UJud4pvAhWJXKYlnZYuF6wVBhpHjYO
-# zX8oQpTjORuXE5smvN75W+vOxFbxay33MwZJXU6R4T08lfe9lCHZ4YCwM15cAur7
-# FqUKwYO1WMG6l526WIecras5d9OcziXk9+ldCVAhGt5V9KMH5RL3zgIOpfBer3Ct
-# TrD1bNCsp0TfguPA5QhdJfcrOYbndBgDxLNvhn36OfBJYAPg6RRGfrkI9gQYlx0x
-# 6e7Tdd9Sp0JARSvb6Qo6HktYdXERsQFdbZewv7d+R5qmZpFh5Aiu5eC/TIzUHf+B
-# zRl5WyyhHQsmJGDPjxWZuuZQao8TMXZrgW0DZD6B7IxcM/TWPdGdrhVLfHXJcjNG
-# VktUDCn3j1KR5hnHdP/daekhvGvk8jCU8SdiI0Kh3eTR5nJh0vb+3XJvswbdWHrw
-# Y2pS4Z0LPcf4x03zNZEgoaJEnvno
+# MQ8XDTI1MDIxMTE3NDI1OFowLwYJKoZIhvcNAQkEMSIEIJGmbJOSxDlxDP8fqu0D
+# IRBzj+xshusGg+qyOSdCsF1YMA0GCSqGSIb3DQEBAQUABIICAEVffPM1gDDpDxeh
+# q1fyyyoaE0KHo9IEpcrnpdhKHnz4Zp1cslCgbR9tZKT9xx63LW2YnmOf8EZma45R
+# 1X4qrBxoFcAdzi90XT5kZLZ0Ny3Ej6fruG/TqX1b+lctFhBgs47g2yPtclHYfneO
+# STgmagrLrDQzr3wg8byAJixYJzMRbPp0lAH5fG2WWJTRSw4lqjihcpxwqrrwW+VW
+# GibO9DK6N2iae8GZMVST0ZC5slyP570ErV3fQwrnAN7x1dUOpzZfMOCAYVNK8T5f
+# NMepo4+N3OUx9aHPi5mKIRB+xcmui9BD5FDqlhyDMWP15ut396dh/k+nxnpowoCr
+# Mf6qoYwYW8DCQRNcwFQIBWTDvXnwod9TlBnAJ/YFjF2ltN/I5KfzODuN8RF7cP/7
+# kb+JTL6L7tXaFflQZ9gif/KwY+WIV2KHTCvIz7ciI3xRxHX8fsUDPmUOJSd2fvbD
+# 1QyBJTdHkN0q5XeWJhWV1O3ZFefYYTPIesMecjA7wInNllqAzlmsuZekJmCUBiq/
+# AwWq/CWmzlyGPFhkkHVtlPg+OhHddhNs4HV9/JrutB5E/TimMc7Y3uHQSmq+gjvV
+# WOgxXqqgyCgLpfB0orSo0F/1DJ2hmwE8Yf6KlfgGmMy/EgCfhSXFvjLPB2T1bzKm
+# PEL0lx1bMLyWqsN8s7mCmUeS0SCJ
 # SIG # End signature block
