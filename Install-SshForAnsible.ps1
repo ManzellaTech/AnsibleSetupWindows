@@ -88,7 +88,7 @@ function Set-FirewallAllowTcpInbound() {
 function Add-LinesToText() {
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Text,
+        [object]$Text,
         [Parameter(Mandatory = $true)]
         [string[]]$LinesToAdd
     )
@@ -99,7 +99,7 @@ function Add-LinesToText() {
 function Remove-LinesFromText() {
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Text,
+        [object]$Text,
         [Parameter(Mandatory = $true)]
         [string[]]$LinesToRemove
     )
@@ -158,7 +158,6 @@ function Set-SshdConfig() {
     }
     Copy-Item -Path $SshdConfigPath -Destination "$($SshdConfigPath).bak"
     $SshdConfig = Get-Content $SshdConfigPath
-    Write-Host $SshdConfig.GetType()
 
     $LinesToRemove = @(
         '^PubkeyAuthentication',
@@ -175,7 +174,6 @@ function Set-SshdConfig() {
     }
     $SshdConfig = Remove-LinesFromText -Text $SshdConfig -LinesToRemove $LinesToRemove
 
-    Write-Host $SshdConfig.GetType()
     $LinesToAdd = @(
         'PubkeyAuthentication yes',
         'ChallengeResponseAuthentication no',
@@ -188,7 +186,6 @@ function Set-SshdConfig() {
         $LinesToAdd += "Port $($SshPortNumber)"
     }
     $SshdConfig = Add-LinesToText -Text $SshdConfig -LinesToAdd $LinesToAdd
-    Write-Host $SshdConfig.GetType()
     
     $SshdConfig | Set-Content $SshdConfigPath
     Write-Host "sshd_config file updated successfully."
@@ -203,7 +200,7 @@ function Set-SshDefaultShellToPowerShell() {
         Force        = $true
     }
     try {
-        New-ItemProperty @shellParams -ErrorAction Stop 2>$null
+        New-ItemProperty @shellParams -ErrorAction Stop | Out-Null
     } catch {
         Write-Error "Failed to set default shell to PowerShell in Registry: $_"
         Exit
