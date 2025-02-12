@@ -1,24 +1,46 @@
 # AnsibleSetupWindows
-Configures a Windows workstation or server to be managed by Ansible over SSH.  
+Configures a Windows workstation or server to be managed by Ansible over SSH with minimal effort using PowerShell.
 `Install-SshForAnsible.ps1` configures the SSH Server on Windows for public key authentication and denies SSH password authentication.  By default the SSH port is "22" but there is a parameter to change it to a TCP port of your choosing.  Run `Get-Help .\Install-SshForAnsible.ps1` for more details about script usage.
 `Add-AnsibleLocalAdmin.ps1` adds a local admin for Ansible to use as a service account.  By default the username is "ansible" but there is a parameter for the script if you wish to change it.  If Ansible will be using an existing local or domain admin account you don't have to run this script. Run `Get-Help .\Add-AnsibleLocalAdmin.ps1` for more details about script usage.
 
-## Usage
+## Instructions
 
-Configure SSH Server on a Windows computer.
+### Enable SSH on a Windows computer
+
+1. Open PowerShell with the "Run as Administrator" option.
+2. Download the `Install-SshForAnsible.ps1` script.
+```powershell
+irm https://raw.githubusercontent.com/ManzellaTech/AnsibleSetupWindows/refs/heads/main/Install-SshForAnsible.ps1 | Set-Content Install-SshForAnsible.ps1
+```
+3. Review the script unless you're comfortable running arbitrary code written by strangers on the internet.
+4. Run the script to install and configure SSH Server on a Windows computer.
 ```powershell
 .\Install-SshForAnsible.ps1 -AnsibleServerPublicKey (Get-Content "C:\path\to\ansible\server's\public\key\ansible_ed25519.pub")
 ```
 
-Add an 'ansible' local admin service account.
+### Add Ansible service account
+
+Adds an 'ansible' local admin service account.  These steps are not necessary if you're planning to use an existing domain or local admin account.  
+1. Open PowerShell with the "Run as Administrator" option.
+2. Download the `Add-AnsibleLocalAdmin.ps1` script.
 ```powershell
-$SecurePassword = ConvertTo-SecureString -String "Example-Password-Do-Not-Use" -AsPlainText -Force
-.\Add-AnsibleLocalAdmin -PasswordSecureString $SecurePassword
+irm https://raw.githubusercontent.com/ManzellaTech/AnsibleSetupWindows/refs/heads/main/Add-AnsibleLocalAdmin.ps1 | Set-Content Add-AnsibleLocalAdmin.ps1
+```
+3. Review the script unless you're comfortable running arbitrary code written by strangers on the internet.
+4. Run the script to create the 'ansible' local admin service account.
+```powershell
+.\Add-AnsibleLocalAdmin -PasswordSecureString (Read-Host -AsSecureString)
 ```
 
-If the scripts do not run due to PowerShell's execution policy you can bypass execution policy by running this command first:  
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+## Ansible host_vars example
+
+On the Ansible server create a file in `group_vars` or `host_vars` for the Windows computer.  Example content:
+```yaml
+ansible_connection: ssh
+ansible_ssh_private_key_file: ~/.ssh/ansible_ed25519.pub
+ansible_shell_type: powershell
+ansible_user: ansible
+ansible_password: example_password!_replace_this_with_your_desired_password!
 ```
 
 ## Compatible Windows Versions
