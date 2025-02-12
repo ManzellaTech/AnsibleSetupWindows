@@ -98,30 +98,6 @@ function Set-FirewallAllowTcpInbound() {
     }
 }
 
-function Add-LinesToText() {
-    param (
-        [Parameter(Mandatory = $true)]
-        [object]$Text,
-        [Parameter(Mandatory = $true)]
-        [string[]]$LinesToAdd
-    )
-    $Text += $LinesToAdd
-    return $Text
-}
-
-function Remove-LinesFromText() {
-    param (
-        [Parameter(Mandatory = $true)]
-        [object]$Text,
-        [Parameter(Mandatory = $true)]
-        [string[]]$LinesToRemove
-    )
-    foreach ($LineToRemove in $LinesToRemove) {
-        $Text = $Text | Where-Object { $_ -notmatch $LineToRemove }
-    }
-    return $Text
-}
-
 function Test-LineExists {
     param (
         [Parameter(Mandatory = $true)]
@@ -158,20 +134,22 @@ function Test-SshdConfigFileExists() {
     return [System.IO.File]::Exists($SshdConfigPath)
 }
 
-function Update-LinesInString() {
+function Update-LinesInText() {
     param (
         [string]$Text,
         [hashtable]$Replacements  # Key: Start of line, Value: Replacement text
     )
-    for ($i = 0; $i -lt $Text.Length; $i++) {
+    $Lines = $Text -split "`r?`n"
+    for ($i = 0; $i -lt $Lines.Length; $i++) {
         foreach ($key in $Replacements.Keys) {
-            if ($Text[$i] -match "^$key") {
-                $Text[$i] = $Replacements[$key]
-                break
+            if ($Lines[$i] -match "^$key") {
+                $Lines[$i] = $Replacements[$key]  # Replace line
+                break  # Stop checking other keys for this line
             }
         }
     }
-    return $Text
+    $UpdatedText = ($Lines -join "`n")
+    return $UpdatedText
 }
 
 function Set-SshdConfig() {
@@ -189,20 +167,24 @@ function Set-SshdConfig() {
     if (-not(Test-Path -Path $SshdConfigPathBackup)) {
         Copy-Item -Path $SshdConfigPath -Destination $SshdConfigPathBackup
     }
-    $SshdConfig = Get-Content $SshdConfigPath
+    $SshdConfig = Get-Content $SshdConfigPath -Raw
 
     $Replacements = @{
-        "^PubkeyAuthentication" = "PubkeyAuthentication yes";
-        "^ChallengeResponseAuthentication" = "ChallengeResponseAuthentication no";
-        "^PasswordAuthentication" = "PasswordAuthentication no";
-        "^PermitEmptyPasswords" = "PermitEmptyPasswords yes";
-        "^#MaxAuthTries" = "MaxAuthTries 6";
-        "^MaxAuthTries" = "MaxAuthTries 6";
-        "^MaxSessions" = "MaxSessions 10";
-        "^#MaxSessions" = "MaxSessions 10";
+        "PubkeyAuthentication" = "PubkeyAuthentication yes";
+        "ChallengeResponseAuthentication" = "ChallengeResponseAuthentication no";
+        "PasswordAuthentication" = "PasswordAuthentication no";
+        "PermitEmptyPasswords" = "PermitEmptyPasswords yes";
+        "MaxAuthTries" = "MaxAuthTries 6";
+        "#MaxAuthTries" = "MaxAuthTries 6";
+        "MaxSessions" = "MaxSessions 10";
+        "#MaxSessions" = "MaxSessions 10";
+    }
+    if ($SshPortNumber -ne 22) {
+        $Replacements["Port"] = "Port $($SshPortNumber)"
+        $Replacements["#Port"] = "Port $($SshPortNumber)"
     }
 
-    $UpdatedSshdConfig = Replace-LinesInFile -Text $SshdConfig -Replacements $Replacements
+    $UpdatedSshdConfig = Update-LinesInText -Text $SshdConfig -Replacements $Replacements
     $UpdatedSshdConfig | Set-Content $SshdConfigPath
     Write-Host "sshd_config file updated successfully."
 }
