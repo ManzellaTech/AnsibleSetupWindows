@@ -1,6 +1,8 @@
 # AnsibleSetupWindows
 Configures a Windows workstation or server to be managed by Ansible over SSH with minimal effort using PowerShell.
+
 `Install-SshForAnsible.ps1` configures the SSH Server on Windows for public key authentication and denies SSH password authentication.  By default the SSH port is "22" but there is a parameter to change it to a TCP port of your choosing.  Run `Get-Help .\Install-SshForAnsible.ps1` for more details about script usage.
+
 `Add-AnsibleLocalAdmin.ps1` adds a local admin for Ansible to use as a service account.  By default the username is "ansible" but there is a parameter for the script if you wish to change it.  If Ansible will be using an existing local or domain admin account you don't have to run this script. Run `Get-Help .\Add-AnsibleLocalAdmin.ps1` for more details about script usage.
 
 ## Instructions
@@ -29,24 +31,24 @@ irm https://raw.githubusercontent.com/ManzellaTech/AnsibleSetupWindows/refs/head
 3. Review the script unless you're comfortable running arbitrary code written by strangers on the internet.
 4. Run the script to create the 'ansible' local admin service account.
 ```powershell
-.\Add-AnsibleLocalAdmin -PasswordSecureString (Read-Host -AsSecureString)
+.\Add-AnsibleLocalAdmin -PasswordSecureString (Read-Host -Prompt "Enter the password for the Ansible local admin account" -AsSecureString)
 ```
 
-## Ansible host_vars example
+## Ansible group_vars/host_vars example
 
 On the Ansible server create a file in `group_vars` or `host_vars` for the Windows computer.  Example content:
 ```yaml
 ansible_connection: ssh
+ansible_port: 22
 ansible_ssh_private_key_file: ~/.ssh/ansible_ed25519.pub
 ansible_shell_type: powershell
 ansible_user: ansible
-ansible_password: example_password!_replace_this_with_your_desired_password!
+ansible_password: example_password!_replace_this_with_the_password_you_entered!
 ```
 
 ## Compatible Windows Versions
 
-The `Install-SshForAnsible.ps1` script relies on OpenSSH Server being available to be installed with `Add-WindowsCapability`.  
-The following versions of Windows can install OpenSSH Server:
+The `Install-SshForAnsible.ps1` script relies on OpenSSH Server being available to be installed with `Add-WindowsCapability`.  The following versions of Windows can install OpenSSH Server:
 - Windows 11
 - Windows 10 (starting with 1803)
 - Windows Server 2025
