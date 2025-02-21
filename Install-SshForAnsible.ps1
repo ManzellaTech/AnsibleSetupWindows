@@ -241,8 +241,8 @@ else {
 Write-Host "Configuring SSH config for public key authentication and deny password authentication."
 Set-SshdConfig -SshPortNumber $SshPortNumber
 
-Write-Host "Restarting SSH Service."
-Restart-SshServerService
-
 Write-Host "Setting default shell to PowerShell in Registry."
 Set-SshDefaultShellToPowerShell
+
+Write-Host "Restarting SSH Service."
+Restart-SshServerService
